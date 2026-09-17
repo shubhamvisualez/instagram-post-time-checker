@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: instagram-post-time-checker
+    env: docker
+    plan: free
+    healthCheckPath: /healthz
