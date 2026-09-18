@@ -16,7 +16,7 @@
   }
   @media (prefers-color-scheme: dark) {
     body { background: #121212; color: #eee; }
-    input[type=url] { background: #1e1e1e !important; color: #eee !important; border-color: #444 !important; }
+    input[type=url], select { background: #1e1e1e !important; color: #eee !important; border-color: #444 !important; }
     .card { background: #1e1e1e !important; border-color: #333 !important; }
   }
   h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
@@ -28,6 +28,15 @@
     border: 1px solid #ccc;
     border-radius: 8px;
     font-size: 1rem;
+  }
+  select {
+    flex: 0 1 220px;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    color: inherit;
   }
   button {
     padding: 0.7rem 1.3rem;
@@ -64,6 +73,11 @@
 
   <form method="post">
     <input type="url" name="url" placeholder="https://www.instagram.com/reel/..." value="{{ raw_url }}" required>
+    <select name="tz">
+      {% for tz_value, tz_label in timezones %}
+        <option value="{{ tz_value }}" {% if tz_value == selected_tz %}selected{% endif %}>{{ tz_label }}</option>
+      {% endfor %}
+    </select>
     <button type="submit">Check</button>
   </form>
 
@@ -73,8 +87,8 @@
 
   {% if result %}
     <div class="card">
+      <div class="row"><span>Posted ({{ result.tz_name }})</span><span>{{ result.posted_tz }}</span></div>
       <div class="row"><span>Posted (UTC)</span><span>{{ result.posted_utc }}</span></div>
-      <div class="row"><span>Posted (local to server)</span><span>{{ result.posted_local }}</span></div>
       <div class="row"><span>Day of week</span><span>{{ result.day_of_week }}</span></div>
       {% if result.likes %}<div class="row"><span>Likes</span><span>{{ result.likes }}</span></div>{% endif %}
       {% if result.comments %}<div class="row"><span>Comments</span><span>{{ result.comments }}</span></div>{% endif %}

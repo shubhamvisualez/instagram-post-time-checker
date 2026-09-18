@@ -5,7 +5,15 @@ import os
 
 from flask import Flask, render_template, request
 
-from core import build_post_result, classify_url, fetch_post_data, normalize_url, profile_message
+from core import (
+    DEFAULT_TZ,
+    TIMEZONES,
+    build_post_result,
+    classify_url,
+    fetch_post_data,
+    normalize_url,
+    profile_message,
+)
 
 app = Flask(__name__)
 
@@ -15,9 +23,14 @@ def index():
     result = None
     error = None
     raw_url = ""
+    selected_tz = DEFAULT_TZ
 
     if request.method == "POST":
         raw_url = request.form.get("url", "").strip()
+        selected_tz = request.form.get("tz", DEFAULT_TZ)
+        if selected_tz not in dict(TIMEZONES):
+            selected_tz = DEFAULT_TZ
+
         if not raw_url:
             error = "Please paste an Instagram URL."
         else:
@@ -25,7 +38,7 @@ def index():
             kind, ident = classify_url(url)
             if kind == "post":
                 data = asyncio.run(fetch_post_data(url))
-                result = build_post_result(url, data)
+                result = build_post_result(url, data, tz_name=selected_tz)
                 if not result["ok"]:
                     error = result["error"]
                     result = None
@@ -34,7 +47,14 @@ def index():
             else:
                 error = "Could not recognize this as an Instagram profile or post/reel URL."
 
-    return render_template("index.html", result=result, error=error, raw_url=raw_url)
+    return render_template(
+        "index.html",
+        result=result,
+        error=error,
+        raw_url=raw_url,
+        timezones=TIMEZONES,
+        selected_tz=selected_tz,
+    )
 
 
 @app.route("/healthz")

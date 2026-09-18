@@ -5,6 +5,7 @@ Used by both the CLI (ig_time_checker.py) and the web app (app.py).
 import re
 from datetime import datetime
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 from playwright.async_api import async_playwright
 
@@ -12,6 +13,24 @@ USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
+
+DEFAULT_TZ = "Asia/Kolkata"
+
+# Curated list for the dropdown: (IANA name, display label). Keeps the UI
+# short instead of listing all ~400 zoneinfo entries.
+TIMEZONES = [
+    ("Asia/Kolkata", "IST — India (UTC+5:30)"),
+    ("UTC", "UTC"),
+    ("America/New_York", "US Eastern (New York)"),
+    ("America/Chicago", "US Central (Chicago)"),
+    ("America/Los_Angeles", "US Pacific (Los Angeles)"),
+    ("Europe/London", "UK (London)"),
+    ("Europe/Berlin", "Central Europe (Berlin)"),
+    ("Asia/Dubai", "Gulf (Dubai)"),
+    ("Asia/Singapore", "Singapore"),
+    ("Asia/Tokyo", "Japan (Tokyo)"),
+    ("Australia/Sydney", "Australia Eastern (Sydney)"),
+]
 
 
 def classify_url(url: str):
@@ -68,7 +87,7 @@ async def fetch_post_data(url: str) -> dict:
     return {"time": time_data, "description": description, "likes": likes, "comments": comments}
 
 
-def build_post_result(url: str, data: dict) -> dict:
+def build_post_result(url: str, data: dict, tz_name: str = DEFAULT_TZ) -> dict:
     """Turn raw scrape data into a plain-dict result usable by CLI or web output."""
     t = data.get("time")
     if not t or not t.get("datetime"):
@@ -83,14 +102,19 @@ def build_post_result(url: str, data: dict) -> dict:
         }
 
     dt_utc = datetime.fromisoformat(t["datetime"].replace("Z", "+00:00"))
-    dt_local = dt_utc.astimezone()
+    try:
+        dt_tz = dt_utc.astimezone(ZoneInfo(tz_name))
+    except Exception:
+        tz_name = DEFAULT_TZ
+        dt_tz = dt_utc.astimezone(ZoneInfo(tz_name))
 
     return {
         "ok": True,
         "url": url,
         "posted_utc": dt_utc.strftime("%Y-%m-%d %H:%M:%S %Z"),
-        "posted_local": dt_local.strftime("%Y-%m-%d %H:%M:%S %Z"),
-        "day_of_week": dt_utc.strftime("%A"),
+        "posted_tz": dt_tz.strftime("%Y-%m-%d %H:%M:%S %Z"),
+        "tz_name": tz_name,
+        "day_of_week": dt_tz.strftime("%A"),
         "likes": data.get("likes"),
         "comments": data.get("comments"),
     }
